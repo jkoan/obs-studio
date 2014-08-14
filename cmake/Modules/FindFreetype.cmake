@@ -14,10 +14,11 @@ if(LIBFREETYPE_INCLUDE_DIRS AND LIBFREETYPE_LIBRARIES)
 else()
 	find_package(PkgConfig QUIET)
 	if (PKG_CONFIG_FOUND)
-		pkg_check_modules(_FREETYPE QUIET freetype)
+		pkg_check_modules(_FREETYPE QUIET freetype2)
 	endif()
 
 	message("somehow we're executing the freetype shit")
+	message("${_FREETYPE_INCLUDE_DIRS}")
 
 	if(CMAKE_SIZEOF_VOID_P EQUAL 8)
 		set(_lib_suffix 64)

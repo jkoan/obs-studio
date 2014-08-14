@@ -1,6 +1,9 @@
 #include <util/bmem.h>
 #include <util/dstr.h>
 #include "find-font.h"
+#include FT_TRUETYPE_IDS_H
+
+#import <Foundation/Foundation.h>
 
 static char *find_path_font(FT_Library lib, NSFileManager *file_manager,
 		NSString *path, const char *face_name)
@@ -12,36 +15,39 @@ static char *find_path_font(FT_Library lib, NSFileManager *file_manager,
 	files = [file_manager contentsOfDirectoryAtPath:path error:&error];
 
 	for (NSString *file in files) {
+		NSMutableString *full_path = [[NSMutableString alloc] init];
+		[full_path setString:path];
+		[full_path appendString:@"/"];
+		[full_path appendString:file];
+
 		FT_Face face;
-		if (FT_New_Face(lib, file.UTF8String, 0, &face) != 0)
+		if (FT_New_Face(lib, full_path.UTF8String, 0, &face) != 0) {
+			[full_path release];
+			[file release];
 			continue;
-
-		FT_UInt num_faces = FT_GetSfnt_Name_Count(face);
-		for (FT_UInt i = 0; i < num_faces; i++) {
-			FT_SfntName aname;
-
-			if (FT_Get_Sfnt_Name(face, i, &aname) != 0)
-				continue;
-
-			if (astrcmp_n(aname.string, aname.string_len,
-						face_name) == 0) {
-				ret = bstrdup(file.UTF8String);
-				break;
-			}
 		}
 
+		if (strcmp(face->family_name, face_name) == 0)
+			ret = bstrdup(full_path.UTF8String);
+
 		FT_Done_Face(face);
+
+		[full_path release];
+		[file release];
 
 		if (ret)
 			break;
 	}
 
+	[files release];
+	[error release];
 	return ret;
 }
 
-static char *find_font_file_autorel(FT_Library lib, const char *face)
+char *find_font_file(FT_Library lib, const char *face)
 {
 	BOOL is_dir;
+	char *file = NULL;
 	NSArray *paths = NSSearchPathForDirectoriesInDomains(
 			NSLibraryDirectory, NSAllDomainsMask, true);
 
@@ -53,21 +59,18 @@ static char *find_font_file_autorel(FT_Library lib, const char *face)
 		bool folder_exists = [file_manager fileExistsAtPath:font_path
 				isDirectory:&is_dir];
 
-		if (folder_exists && is_dir) {
-			char *file = find_path_font(file_manager, path);
-			if (file)
-				return file;
-		}
-	}
-}
+		if (folder_exists && is_dir)
+			file = find_path_font(lib, file_manager, font_path,
+					face);
 
-char *find_font_file(FT_Library lib, const char *face)
-{
-	char *ret = NULL;
+		[font_path release];
+		[file_manager release];
+		[path release];
 
-	@autoreleasepool {
-		ret = find_font_file_autorel(lib, face);
+		if (file)
+			break;
 	}
 
-	return ret;
+	[paths release];
+	return file;
 }

@@ -22,6 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <sys/stat.h>
 #include "text-freetype2.h"
 #include "obs-convenience.h"
+#include "find-font.h"
 
 OBS_DECLARE_MODULE()
 OBS_MODULE_USE_DEFAULT_LOCALE("text-freetype2", "en-US")
@@ -201,9 +202,10 @@ static void ft2_video_tick(void *data, float seconds)
 	if (srcdata->text_file == NULL) return;
 
 	if (os_gettime_ns() - srcdata->last_checked >= 1000000000) {
+		time_t t = get_modified_timestamp(srcdata->text_file);
 		srcdata->last_checked = os_gettime_ns();
-		if (srcdata->m_timestamp !=
-			get_modified_timestamp(srcdata->text_file)) {
+
+		if (srcdata->m_timestamp != t) {
 			if (srcdata->log_mode)
 				read_from_end(srcdata, srcdata->text_file);
 			else
@@ -389,7 +391,10 @@ static void *ft2_source_create(obs_data_t settings, obs_source_t source)
 	obs_data_set_default_int(settings, "color1", 0xFFFFFFFF);
 	obs_data_set_default_int(settings, "color2", 0xFFFFFFFF);
 	obs_data_set_default_string(settings, "text",
-		"The lazy snake jumps over the happy MASKEN.");
+			"The lazy snake jumps over the happy MASKEN.");
+
+	char *test = find_font_file(srcdata->ft2_lib, "Arial");
+	bfree(test);
 
 	ft2_source_update(srcdata, settings);
 
