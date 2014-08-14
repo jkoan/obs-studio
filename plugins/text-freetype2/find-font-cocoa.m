@@ -46,11 +46,11 @@ static char *find_font_file_autorel(FT_Library lib, const char *face)
 			NSLibraryDirectory, NSAllDomainsMask, true);
 
 	for (NSString *path in paths) {
-		NSFileManager *file_manager = [[NSFileManager alloc] init];
+		NSFileManager *file_manager = [NSFileManager defaultManager];
 		NSString *font_path =
 			[path stringByAppendingPathComponent:@"Fonts"];
 
-		BOOL folder_exists = [file_manager fileExistsAtPath:font_path
+		bool folder_exists = [file_manager fileExistsAtPath:font_path
 				isDirectory:&is_dir];
 
 		if (folder_exists && is_dir) {
