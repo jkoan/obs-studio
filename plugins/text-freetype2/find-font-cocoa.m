@@ -9,42 +9,31 @@ static char *find_path_font(FT_Library lib, NSFileManager *file_manager,
 		NSString *path, const char *face_name)
 {
 	NSArray *files = NULL;
-	NSError *error = NULL;
 	char *ret = NULL;
 
-	files = [file_manager contentsOfDirectoryAtPath:path error:&error];
+	files = [file_manager contentsOfDirectoryAtPath:path error:nil];
 
 	for (NSString *file in files) {
-		NSMutableString *full_path = [[NSMutableString alloc] init];
-		[full_path setString:path];
-		[full_path appendString:@"/"];
-		[full_path appendString:file];
+		NSString *full_path =
+			[path stringByAppendingPathComponent:file];
 
 		FT_Face face;
-		if (FT_New_Face(lib, full_path.UTF8String, 0, &face) != 0) {
-			[full_path release];
-			[file release];
+		if (FT_New_Face(lib, full_path.UTF8String, 0, &face) != 0)
 			continue;
-		}
 
 		if (strcmp(face->family_name, face_name) == 0)
 			ret = bstrdup(full_path.UTF8String);
 
 		FT_Done_Face(face);
 
-		[full_path release];
-		[file release];
-
 		if (ret)
 			break;
 	}
 
-	[files release];
-	[error release];
 	return ret;
 }
 
-char *find_font_file(FT_Library lib, const char *face)
+static char *find_font_file_internal(FT_Library lib, const char *face)
 {
 	BOOL is_dir;
 	char *file = NULL;
@@ -63,14 +52,16 @@ char *find_font_file(FT_Library lib, const char *face)
 			file = find_path_font(lib, file_manager, font_path,
 					face);
 
-		[font_path release];
-		[file_manager release];
-		[path release];
-
 		if (file)
 			break;
 	}
 
-	[paths release];
 	return file;
+}
+
+char *find_font_file(FT_Library lib, const char *face)
+{
+	@autoreleasepool {
+		return find_font_file_internal(lib, face);
+	}
 }
